@@ -58,7 +58,8 @@ func NewModel(targetDir string) Model {
 	ti.CharLimit = 256
 	ti.Width = 60
 	ti.PromptStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#FF6B6B"))
-	ti.TextStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFFFF"))
+	ti.TextStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#4ECDC4")).Bold(true)
+	ti.PlaceholderStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#666666"))
 
 	return Model{
 		targetDir:   targetDir,
