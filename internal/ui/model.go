@@ -109,14 +109,26 @@ func NewModel(targetDir string) Model {
 	ti.TextStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#4ECDC4")).Bold(true)
 	ti.PlaceholderStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#666666"))
 
-	// Start file watcher
-	w, _ := watcher.New(targetDir)
+	// Start file watcher - resolve absolute path first
+	absDir, err := filepath.Abs(targetDir)
+	if err != nil {
+		absDir = targetDir
+	}
+
+	w, err := watcher.New(absDir)
+	watchStatus := "Watching"
+	if err != nil {
+		watchStatus = fmt.Sprintf("Watch error: %v", err)
+		w = nil
+	} else {
+		watchStatus = fmt.Sprintf("Watching %d dirs", w.WatchCount)
+	}
 
 	return Model{
-		targetDir:    targetDir,
+		targetDir:    absDir,
 		input:        ti,
 		content:      "", // Will be set in Init
-		status:       "Watching",
+		status:       watchStatus,
 		cmdRegistry:  commands.NewRegistry(targetDir),
 		history:      []string{},
 		historyIndex: -1,
@@ -374,6 +386,7 @@ func (m Model) renderLiveView() string {
 }
 
 func (m Model) renderEvent(ed EventDisplay) string {
+	var sb strings.Builder
 	var opStyle lipgloss.Style
 	var icon string
 
@@ -414,7 +427,7 @@ func (m Model) renderEvent(ed EventDisplay) string {
 	// Get file extension for icon
 	fileIcon := getFileIcon(ed.Event.Name)
 
-	// Build the line
+	// Build the main line
 	line := fmt.Sprintf("    %s %s  %s  %s  %s",
 		opStyle.Render(icon),
 		opStyle.Render(fmt.Sprintf("%-10s", ed.Event.Operation)),
@@ -422,8 +435,21 @@ func (m Model) renderEvent(ed EventDisplay) string {
 		filePathStyle.Render(ed.Event.Path),
 		timeStyle.Render(timeStr),
 	)
+	sb.WriteString(line)
 
-	return line
+	// Add preview lines if available (only for recent events)
+	if len(ed.Event.Preview) > 0 && ed.Age < 50 {
+		previewStyle := lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#6B7280")).
+			PaddingLeft(8)
+
+		for _, pline := range ed.Event.Preview {
+			sb.WriteString("\n")
+			sb.WriteString(previewStyle.Render("│ " + pline))
+		}
+	}
+
+	return sb.String()
 }
 
 func (m Model) renderGitAnimation() string {

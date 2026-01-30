@@ -1,6 +1,6 @@
 # arcsii
 
-Beautiful terminal-based code architecture visualizer with ASCII art.
+Beautiful terminal-based code architecture visualizer with ASCII art, live file monitoring, and git operation animations.
 
 ```
     ╔═══════════════════════════════════════════════════════════╗
