@@ -307,129 +307,223 @@ func renderClassBox(class parser.ClassInfo) string {
 func RenderASCIIArt(structure parser.Structure) string {
 	var sb strings.Builder
 
-	header := headerStyle.Render("ASCII ARCHITECTURE")
-	sb.WriteString(header)
-	sb.WriteString("\n\n")
-
 	if len(structure.Modules) == 0 {
 		sb.WriteString(dimStyle.Render("  No modules found in this project.\n"))
 		return sb.String()
 	}
 
-	// Pure ASCII art header
+	// Epic ASCII art header
 	asciiHeader := `
-       _____  ____   ___      _ ______ _____ _______
-      |  __ \|  _ \ / _ \    | |  ____/ ____|__   __|
-      | |__) | |_) | | | |   | | |__ | |       | |
-      |  ___/|  _ <| | | |   | |  __|| |       | |
-      | |    | |_) | |_| |__ | | |___| |____   | |
-      |_|    |____/ \____/\____|______\_____|  |_|
+    ╔═══════════════════════════════════════════════════════════════════════════╗
+    ║                                                                           ║
+    ║     █████╗ ██████╗  ██████╗██╗  ██╗██╗████████╗███████╗ ██████╗████████╗  ║
+    ║    ██╔══██╗██╔══██╗██╔════╝██║  ██║██║╚══██╔══╝██╔════╝██╔════╝╚══██╔══╝  ║
+    ║    ███████║██████╔╝██║     ███████║██║   ██║   █████╗  ██║        ██║     ║
+    ║    ██╔══██║██╔══██╗██║     ██╔══██║██║   ██║   ██╔══╝  ██║        ██║     ║
+    ║    ██║  ██║██║  ██║╚██████╗██║  ██║██║   ██║   ███████╗╚██████╗   ██║     ║
+    ║    ╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝╚═╝   ╚═╝   ╚══════╝ ╚═════╝   ╚═╝     ║
+    ║                                                                           ║
+    ╚═══════════════════════════════════════════════════════════════════════════╝
 `
 	sb.WriteString(lipgloss.NewStyle().Foreground(cyan).Bold(true).Render(asciiHeader))
 	sb.WriteString("\n")
 
-	// Draw architecture as ASCII boxes connected with lines
-	sb.WriteString(lipgloss.NewStyle().Foreground(yellow).Render("    ARCHITECTURE OVERVIEW\n"))
-	sb.WriteString(lipgloss.NewStyle().Foreground(gray).Render("    " + strings.Repeat("=", 50) + "\n\n"))
-
-	// Entry point
-	if len(structure.MainFiles) > 0 {
-		entryBox := `
-                    +---------------------------+
-                    |                           |
-                    |      >>> ENTRY <<<        |
-                    |        main.go            |
-                    |                           |
-                    +---------------------------+
-                                |
-                                |
-                                v
-`
-		sb.WriteString(lipgloss.NewStyle().Foreground(green).Render(entryBox))
+	// System overview
+	totalStructs := 0
+	totalFuncs := 0
+	totalFiles := 0
+	for _, mod := range structure.Modules {
+		totalStructs += len(mod.Structs)
+		totalFuncs += len(mod.Funcs)
+		totalFiles += len(mod.Files)
 	}
 
-	// Draw modules as ASCII boxes
-	numMods := len(structure.Modules)
-	if numMods > 0 {
-		// Draw connection line
-		sb.WriteString(lipgloss.NewStyle().Foreground(gray).Render("        +-------+-------+-------+-------+\n"))
-		sb.WriteString(lipgloss.NewStyle().Foreground(gray).Render("        |       |       |       |       |\n"))
-		sb.WriteString(lipgloss.NewStyle().Foreground(gray).Render("        v       v       v       v       v\n\n"))
+	stats := fmt.Sprintf(`
+    ┌─────────────────────────────────────────────────────────────────┐
+    │  📊 SYSTEM OVERVIEW                                             │
+    ├─────────────────────────────────────────────────────────────────┤
+    │                                                                 │
+    │    Modules: %-4d    Classes: %-4d    Functions: %-4d            │
+    │    Files: %-4d      Entry Points: %-4d                          │
+    │                                                                 │
+    └─────────────────────────────────────────────────────────────────┘
+`, len(structure.Modules), totalStructs, totalFuncs, totalFiles, len(structure.MainFiles))
 
-		// Draw each module as an ASCII box
-		for _, mod := range structure.Modules {
-			box := renderASCIIModuleBox(mod)
-			sb.WriteString(box)
-			sb.WriteString("\n")
+	sb.WriteString(lipgloss.NewStyle().Foreground(yellow).Render(stats))
+
+	// Entry points with cool visualization
+	if len(structure.MainFiles) > 0 {
+		sb.WriteString(lipgloss.NewStyle().Foreground(green).Bold(true).Render(`
+                         ╔═══════════════════╗
+                         ║   🚀 ENTRY POINT  ║
+                         ╚════════╤══════════╝
+                                  │
+`))
+		for i, main := range structure.MainFiles {
+			connector := "├"
+			if i == len(structure.MainFiles)-1 {
+				connector = "└"
+			}
+			sb.WriteString(lipgloss.NewStyle().Foreground(green).Render(
+				fmt.Sprintf("                                  %s──▶ %s\n", connector, filepath.Base(main))))
+		}
+		sb.WriteString(lipgloss.NewStyle().Foreground(gray).Render(`
+                                  │
+                    ╔═════════════╧═════════════╗
+                    ║                           ║
+                    ▼                           ▼
+`))
+	}
+
+	// Render modules in a grid-like pattern
+	sb.WriteString(lipgloss.NewStyle().Foreground(purple).Bold(true).Render("\n    ══════════════════════════════════════════════════════════════════\n"))
+	sb.WriteString(lipgloss.NewStyle().Foreground(purple).Bold(true).Render("                           📦 MODULES\n"))
+	sb.WriteString(lipgloss.NewStyle().Foreground(purple).Bold(true).Render("    ══════════════════════════════════════════════════════════════════\n\n"))
+
+	for i, mod := range structure.Modules {
+		box := renderCoolModuleBox(mod, i)
+		sb.WriteString(box)
+
+		// Draw connections between modules
+		if i < len(structure.Modules)-1 {
+			sb.WriteString(lipgloss.NewStyle().Foreground(gray).Render("                         │\n"))
+			sb.WriteString(lipgloss.NewStyle().Foreground(gray).Render("                         ▼\n"))
 		}
 	}
 
-	// Draw a nice footer
-	footer := `
-    +----------------------------------------------------------+
-    |  Structs: [=] Functions: (f) Files: <> Connections: ---  |
-    +----------------------------------------------------------+
+	// Legend
+	legend := `
+    ╔═══════════════════════════════════════════════════════════════════╗
+    ║  LEGEND                                                           ║
+    ╠═══════════════════════════════════════════════════════════════════╣
+    ║  ◆ Class/Struct    ◇ Interface    ƒ Function    ◈ File            ║
+    ║  ─── Dependency    ═══ Inheritance    ─·─ Implementation          ║
+    ╚═══════════════════════════════════════════════════════════════════╝
 `
-	sb.WriteString(lipgloss.NewStyle().Foreground(gray).Render(footer))
+	sb.WriteString(lipgloss.NewStyle().Foreground(gray).Render(legend))
 
 	return sb.String()
 }
 
-func renderASCIIModuleBox(mod parser.ModuleInfo) string {
+func renderCoolModuleBox(mod parser.ModuleInfo, index int) string {
 	var sb strings.Builder
 
-	// Calculate box width
-	width := 40
+	// Decorative elements based on index
+	decorations := []string{"◈", "◆", "◇", "○", "●", "□", "■", "△", "▲"}
+	deco := decorations[index%len(decorations)]
+
+	// Module header with style
+	width := 60
 	name := mod.Name
-	if len(name) > width-4 {
-		name = name[:width-7] + "..."
+	if name == "." || name == "" {
+		name = "root"
 	}
 
 	// Top border
-	sb.WriteString(lipgloss.NewStyle().Foreground(blue).Render("    +" + strings.Repeat("-", width-2) + "+\n"))
+	topBorder := "    ╔" + strings.Repeat("═", width-2) + "╗"
+	sb.WriteString(lipgloss.NewStyle().Foreground(blue).Render(topBorder + "\n"))
 
-	// Module name
-	padding := (width - 2 - len(name)) / 2
-	nameLine := "|" + strings.Repeat(" ", padding) + name + strings.Repeat(" ", width-2-padding-len(name)) + "|"
-	sb.WriteString(lipgloss.NewStyle().Foreground(blue).Render("    " + nameLine + "\n"))
+	// Module name with decoration
+	nameDisplay := fmt.Sprintf("%s %s %s", deco, strings.ToUpper(name), deco)
+	padding := (width - 2 - len(nameDisplay)) / 2
+	nameLine := "    ║" + strings.Repeat(" ", padding) + nameDisplay + strings.Repeat(" ", width-2-padding-len(nameDisplay)) + "║"
+	sb.WriteString(lipgloss.NewStyle().Foreground(cyan).Bold(true).Render(nameLine + "\n"))
 
 	// Separator
-	sb.WriteString(lipgloss.NewStyle().Foreground(blue).Render("    |" + strings.Repeat("-", width-2) + "|\n"))
+	sb.WriteString(lipgloss.NewStyle().Foreground(blue).Render("    ╠" + strings.Repeat("═", width-2) + "╣\n"))
 
-	// Structs as ASCII art
+	// Classes/Structs section
 	if len(mod.Structs) > 0 {
+		sb.WriteString(lipgloss.NewStyle().Foreground(blue).Render("    ║"))
+		sb.WriteString(lipgloss.NewStyle().Foreground(purple).Bold(true).Render("  ◆ Classes/Structs"))
+		sb.WriteString(lipgloss.NewStyle().Foreground(blue).Render(strings.Repeat(" ", width-22) + "║\n"))
+
 		for _, s := range mod.Structs {
-			structLine := fmt.Sprintf("|  [=] %-*s|", width-8, s)
-			sb.WriteString(lipgloss.NewStyle().Foreground(purple).Render("    " + structLine + "\n"))
+			if len(s) > width-12 {
+				s = s[:width-15] + "..."
+			}
+			line := fmt.Sprintf("    ║    └── %-*s║", width-11, s)
+			sb.WriteString(lipgloss.NewStyle().Foreground(purple).Render(line + "\n"))
 		}
 	}
 
-	// Functions as ASCII art
+	// Functions section
 	if len(mod.Funcs) > 0 {
+		sb.WriteString(lipgloss.NewStyle().Foreground(blue).Render("    ║"))
+		sb.WriteString(lipgloss.NewStyle().Foreground(green).Bold(true).Render("  ƒ Functions"))
+		sb.WriteString(lipgloss.NewStyle().Foreground(blue).Render(strings.Repeat(" ", width-16) + "║\n"))
+
+		displayed := 0
 		for _, f := range mod.Funcs {
-			if len(f) > width-10 {
-				f = f[:width-13] + "..."
+			if displayed >= 5 {
+				remaining := len(mod.Funcs) - displayed
+				line := fmt.Sprintf("    ║    └── ... and %d more%-*s║", remaining, width-25-len(fmt.Sprintf("%d", remaining)), "")
+				sb.WriteString(lipgloss.NewStyle().Foreground(gray).Render(line + "\n"))
+				break
 			}
-			funcLine := fmt.Sprintf("|  (f) %-*s|", width-8, f)
-			sb.WriteString(lipgloss.NewStyle().Foreground(green).Render("    " + funcLine + "\n"))
+			if len(f) > width-12 {
+				f = f[:width-15] + "..."
+			}
+			line := fmt.Sprintf("    ║    └── %-*s║", width-11, f)
+			sb.WriteString(lipgloss.NewStyle().Foreground(green).Render(line + "\n"))
+			displayed++
 		}
 	}
 
-	// Files
+	// Files section
 	if len(mod.Files) > 0 {
+		sb.WriteString(lipgloss.NewStyle().Foreground(blue).Render("    ║"))
+		sb.WriteString(lipgloss.NewStyle().Foreground(orange).Bold(true).Render("  ◈ Files"))
+		sb.WriteString(lipgloss.NewStyle().Foreground(blue).Render(strings.Repeat(" ", width-12) + "║\n"))
+
+		displayed := 0
 		for _, file := range mod.Files {
-			if len(file) > width-10 {
-				file = file[:width-13] + "..."
+			if displayed >= 4 {
+				remaining := len(mod.Files) - displayed
+				line := fmt.Sprintf("    ║    └── ... and %d more%-*s║", remaining, width-25-len(fmt.Sprintf("%d", remaining)), "")
+				sb.WriteString(lipgloss.NewStyle().Foreground(gray).Render(line + "\n"))
+				break
 			}
-			fileLine := fmt.Sprintf("|  <> %-*s|", width-8, file)
-			sb.WriteString(lipgloss.NewStyle().Foreground(cyan).Render("    " + fileLine + "\n"))
+			icon := getFileIconSimple(file)
+			if len(file) > width-14 {
+				file = file[:width-17] + "..."
+			}
+			line := fmt.Sprintf("    ║    └── %s %-*s║", icon, width-14, file)
+			sb.WriteString(lipgloss.NewStyle().Foreground(orange).Render(line + "\n"))
+			displayed++
 		}
 	}
 
 	// Bottom border
-	sb.WriteString(lipgloss.NewStyle().Foreground(blue).Render("    +" + strings.Repeat("-", width-2) + "+\n"))
+	sb.WriteString(lipgloss.NewStyle().Foreground(blue).Render("    ╚" + strings.Repeat("═", width-2) + "╝\n"))
 
 	return sb.String()
+}
+
+func getFileIconSimple(name string) string {
+	ext := filepath.Ext(name)
+	switch ext {
+	case ".go":
+		return "🔷"
+	case ".js", ".jsx":
+		return "🟨"
+	case ".ts", ".tsx":
+		return "🔵"
+	case ".py":
+		return "🐍"
+	case ".rs":
+		return "🦀"
+	case ".java":
+		return "☕"
+	case ".kt":
+		return "🟣"
+	case ".swift":
+		return "🍎"
+	case ".cs":
+		return "🟢"
+	default:
+		return "📄"
+	}
 }
 
 func renderModuleBox(mod parser.ModuleInfo) string {

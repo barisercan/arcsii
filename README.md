@@ -53,6 +53,7 @@ arcsii /path/to/project
 | `/changes` | `/recent`, `/modified` | Show recently modified files |
 | `/stats` | `/info`, `/summary` | Show project statistics |
 | `/funcs` | `/functions`, `/fn` | List all functions/methods |
+| `/watch` | `/live`, `/w` | Live file monitor mode |
 | `/help` | `/h`, `/?` | Show help |
 
 ## Controls

@@ -57,7 +57,11 @@ func (r *Registry) registerCommands() {
 		Aliases:     []string{"class", "classes"},
 		Description: "Show UML class diagram",
 		Handler: func(args []string) (string, string) {
-			classes := parser.ParseClasses(r.targetDir)
+			// Try multi-language parser first, fall back to Go parser
+			classes := parser.ParseClassesMultiLang(r.targetDir)
+			if len(classes) == 0 {
+				classes = parser.ParseClasses(r.targetDir)
+			}
 			return renderer.RenderUML(classes), "UML diagram"
 		},
 	})
@@ -68,7 +72,11 @@ func (r *Registry) registerCommands() {
 		Aliases:     []string{"art", "a"},
 		Description: "ASCII art architecture view",
 		Handler: func(args []string) (string, string) {
-			structure := parser.ParseStructure(r.targetDir)
+			// Try multi-language parser first
+			structure := parser.ParseStructureMultiLang(r.targetDir)
+			if len(structure.Modules) == 0 {
+				structure = parser.ParseStructure(r.targetDir)
+			}
 			return renderer.RenderASCIIArt(structure), "ASCII art view"
 		},
 	})
@@ -79,7 +87,11 @@ func (r *Registry) registerCommands() {
 		Aliases:     []string{"dependencies", "d"},
 		Description: "Show dependency graph",
 		Handler: func(args []string) (string, string) {
-			deps := parser.ParseDependencies(r.targetDir)
+			// Try multi-language parser first
+			deps := parser.ParseDependenciesMultiLang(r.targetDir)
+			if len(deps) == 0 {
+				deps = parser.ParseDependencies(r.targetDir)
+			}
 			return renderer.RenderDeps(deps), "Dependencies"
 		},
 	})
@@ -112,7 +124,11 @@ func (r *Registry) registerCommands() {
 		Aliases:     []string{"functions", "fn"},
 		Description: "List all functions/methods",
 		Handler: func(args []string) (string, string) {
-			funcs := parser.ParseFunctions(r.targetDir)
+			// Try multi-language parser first
+			funcs := parser.ParseFunctionsMultiLang(r.targetDir)
+			if len(funcs) == 0 {
+				funcs = parser.ParseFunctions(r.targetDir)
+			}
 			return renderer.RenderFunctions(funcs), "Functions"
 		},
 	})
