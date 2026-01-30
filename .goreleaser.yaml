@@ -1,0 +1,75 @@
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+version: 2
+
+project_name: arcsii
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: arcsii
+    main: ./main.go
+    binary: arcsii
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - darwin
+      - linux
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X main.version={{.Version}}
+      - -X main.commit={{.Commit}}
+      - -X main.date={{.Date}}
+
+archives:
+  - id: arcsii
+    formats:
+      - tar.gz
+    format_overrides:
+      - goos: windows
+        formats:
+          - zip
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    files:
+      - README.md
+      - LICENSE
+
+checksum:
+  name_template: "checksums.txt"
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+
+brews:
+  - name: arcsii
+    repository:
+      owner: barisercan
+      name: homebrew-tap
+    homepage: "https://github.com/barisercan/arcsii"
+    description: "Beautiful terminal-based code architecture visualizer with ASCII art"
+    license: "MIT"
+    install: |
+      bin.install "arcsii"
+    test: |
+      system "#{bin}/arcsii", "--version"
+
+release:
+  github:
+    owner: barisercan
+    name: arcsii
+  draft: false
+  prerelease: auto
+  name_template: "v{{.Version}}"
