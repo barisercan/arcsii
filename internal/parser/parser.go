@@ -105,31 +105,42 @@ type ModuleInfo struct {
 
 // ParseFileTree builds a file tree structure
 func ParseFileTree(root string) *FileNode {
+	// Resolve the absolute path for better display
+	absRoot, err := filepath.Abs(root)
+	if err != nil {
+		absRoot = root
+	}
+
+	rootName := filepath.Base(absRoot)
+	if rootName == "." || rootName == "" {
+		rootName = "project"
+	}
+
 	rootNode := &FileNode{
-		Name:  filepath.Base(root),
-		Path:  root,
+		Name:  rootName,
+		Path:  absRoot,
 		IsDir: true,
 	}
 
-	filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+	filepath.Walk(absRoot, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return nil
 		}
 
 		// Skip hidden files and common ignore patterns
 		name := info.Name()
-		if strings.HasPrefix(name, ".") || name == "node_modules" || name == "vendor" || name == "__pycache__" {
+		if strings.HasPrefix(name, ".") || name == "node_modules" || name == "vendor" || name == "__pycache__" || name == "dist" {
 			if info.IsDir() {
 				return filepath.SkipDir
 			}
 			return nil
 		}
 
-		if path == root {
+		if path == absRoot {
 			return nil
 		}
 
-		rel, _ := filepath.Rel(root, path)
+		rel, _ := filepath.Rel(absRoot, path)
 		parts := strings.Split(rel, string(os.PathSeparator))
 
 		current := rootNode
@@ -146,7 +157,7 @@ func ParseFileTree(root string) *FileNode {
 				isLast := i == len(parts)-1
 				newNode := &FileNode{
 					Name:    part,
-					Path:    filepath.Join(root, strings.Join(parts[:i+1], string(os.PathSeparator))),
+					Path:    filepath.Join(absRoot, strings.Join(parts[:i+1], string(os.PathSeparator))),
 					IsDir:   info.IsDir() && isLast || !isLast,
 					Size:    info.Size(),
 					ModTime: info.ModTime(),

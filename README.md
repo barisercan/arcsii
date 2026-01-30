@@ -105,14 +105,6 @@ arcsii /path/to/project
   └── github.com/charmbracelet/lipgloss
 ```
 
-## Supported Languages
-
-Currently optimized for **Go** projects. More language support coming soon:
-- [ ] TypeScript/JavaScript
-- [ ] Python
-- [ ] Rust
-- [ ] Java
-
 ## License
 
 MIT

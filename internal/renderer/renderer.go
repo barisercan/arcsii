@@ -307,7 +307,7 @@ func renderClassBox(class parser.ClassInfo) string {
 func RenderASCIIArt(structure parser.Structure) string {
 	var sb strings.Builder
 
-	header := headerStyle.Render("🎨 ASCII ARCHITECTURE")
+	header := headerStyle.Render("ASCII ARCHITECTURE")
 	sb.WriteString(header)
 	sb.WriteString("\n\n")
 
@@ -316,41 +316,118 @@ func RenderASCIIArt(structure parser.Structure) string {
 		return sb.String()
 	}
 
-	// ASCII art representation of architecture
-	sb.WriteString(lipgloss.NewStyle().Foreground(cyan).Render(`
-                    ╔════════════════════════════════════════╗
-                    ║           PROJECT ARCHITECTURE         ║
-                    ╚════════════════════════════════════════╝
-                                       │
-                                       ▼
-`))
-
-	// Entry points
-	if len(structure.MainFiles) > 0 {
-		sb.WriteString(lipgloss.NewStyle().Foreground(pink).Render(`
-                    ┌────────────────────────────────────────┐
-                    │            🚀 ENTRY POINTS             │
-                    └────────────────────────────────────────┘
-`))
-		for _, main := range structure.MainFiles {
-			sb.WriteString(fmt.Sprintf("                                  ◆ %s\n", fileStyle.Render(filepath.Base(main))))
-		}
-		sb.WriteString("\n                                       │\n                                       ▼\n")
-	}
-
-	// Modules as boxes
-	sb.WriteString(lipgloss.NewStyle().Foreground(purple).Render(`
-                    ┌────────────────────────────────────────┐
-                    │              📦 MODULES                │
-                    └────────────────────────────────────────┘
-`))
+	// Pure ASCII art header
+	asciiHeader := `
+       _____  ____   ___      _ ______ _____ _______
+      |  __ \|  _ \ / _ \    | |  ____/ ____|__   __|
+      | |__) | |_) | | | |   | | |__ | |       | |
+      |  ___/|  _ <| | | |   | |  __|| |       | |
+      | |    | |_) | |_| |__ | | |___| |____   | |
+      |_|    |____/ \____/\____|______\_____|  |_|
+`
+	sb.WriteString(lipgloss.NewStyle().Foreground(cyan).Bold(true).Render(asciiHeader))
 	sb.WriteString("\n")
 
-	for _, mod := range structure.Modules {
-		box := renderModuleBox(mod)
-		sb.WriteString(box)
-		sb.WriteString("\n")
+	// Draw architecture as ASCII boxes connected with lines
+	sb.WriteString(lipgloss.NewStyle().Foreground(yellow).Render("    ARCHITECTURE OVERVIEW\n"))
+	sb.WriteString(lipgloss.NewStyle().Foreground(gray).Render("    " + strings.Repeat("=", 50) + "\n\n"))
+
+	// Entry point
+	if len(structure.MainFiles) > 0 {
+		entryBox := `
+                    +---------------------------+
+                    |                           |
+                    |      >>> ENTRY <<<        |
+                    |        main.go            |
+                    |                           |
+                    +---------------------------+
+                                |
+                                |
+                                v
+`
+		sb.WriteString(lipgloss.NewStyle().Foreground(green).Render(entryBox))
 	}
+
+	// Draw modules as ASCII boxes
+	numMods := len(structure.Modules)
+	if numMods > 0 {
+		// Draw connection line
+		sb.WriteString(lipgloss.NewStyle().Foreground(gray).Render("        +-------+-------+-------+-------+\n"))
+		sb.WriteString(lipgloss.NewStyle().Foreground(gray).Render("        |       |       |       |       |\n"))
+		sb.WriteString(lipgloss.NewStyle().Foreground(gray).Render("        v       v       v       v       v\n\n"))
+
+		// Draw each module as an ASCII box
+		for _, mod := range structure.Modules {
+			box := renderASCIIModuleBox(mod)
+			sb.WriteString(box)
+			sb.WriteString("\n")
+		}
+	}
+
+	// Draw a nice footer
+	footer := `
+    +----------------------------------------------------------+
+    |  Structs: [=] Functions: (f) Files: <> Connections: ---  |
+    +----------------------------------------------------------+
+`
+	sb.WriteString(lipgloss.NewStyle().Foreground(gray).Render(footer))
+
+	return sb.String()
+}
+
+func renderASCIIModuleBox(mod parser.ModuleInfo) string {
+	var sb strings.Builder
+
+	// Calculate box width
+	width := 40
+	name := mod.Name
+	if len(name) > width-4 {
+		name = name[:width-7] + "..."
+	}
+
+	// Top border
+	sb.WriteString(lipgloss.NewStyle().Foreground(blue).Render("    +" + strings.Repeat("-", width-2) + "+\n"))
+
+	// Module name
+	padding := (width - 2 - len(name)) / 2
+	nameLine := "|" + strings.Repeat(" ", padding) + name + strings.Repeat(" ", width-2-padding-len(name)) + "|"
+	sb.WriteString(lipgloss.NewStyle().Foreground(blue).Render("    " + nameLine + "\n"))
+
+	// Separator
+	sb.WriteString(lipgloss.NewStyle().Foreground(blue).Render("    |" + strings.Repeat("-", width-2) + "|\n"))
+
+	// Structs as ASCII art
+	if len(mod.Structs) > 0 {
+		for _, s := range mod.Structs {
+			structLine := fmt.Sprintf("|  [=] %-*s|", width-8, s)
+			sb.WriteString(lipgloss.NewStyle().Foreground(purple).Render("    " + structLine + "\n"))
+		}
+	}
+
+	// Functions as ASCII art
+	if len(mod.Funcs) > 0 {
+		for _, f := range mod.Funcs {
+			if len(f) > width-10 {
+				f = f[:width-13] + "..."
+			}
+			funcLine := fmt.Sprintf("|  (f) %-*s|", width-8, f)
+			sb.WriteString(lipgloss.NewStyle().Foreground(green).Render("    " + funcLine + "\n"))
+		}
+	}
+
+	// Files
+	if len(mod.Files) > 0 {
+		for _, file := range mod.Files {
+			if len(file) > width-10 {
+				file = file[:width-13] + "..."
+			}
+			fileLine := fmt.Sprintf("|  <> %-*s|", width-8, file)
+			sb.WriteString(lipgloss.NewStyle().Foreground(cyan).Render("    " + fileLine + "\n"))
+		}
+	}
+
+	// Bottom border
+	sb.WriteString(lipgloss.NewStyle().Foreground(blue).Render("    +" + strings.Repeat("-", width-2) + "+\n"))
 
 	return sb.String()
 }
